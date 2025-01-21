@@ -6,7 +6,7 @@
 /*   By: muzz <muzz@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/01/17 15:20:15 by muzz              #+#    #+#             */
-/*   Updated: 2025/01/21 10:34:06 by muzz             ###   ########.fr       */
+/*   Updated: 2025/01/21 11:43:38 by muzz             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -408,7 +408,8 @@ int handle_key(int keycode, t_data *data)
         new_y++;
     else if (keycode == 65307) // Escape key
     {
-        mlx_destroy_window(data->mlx, data->win);
+        printf("Exiting...\n");
+		mlx_destroy_window(data->mlx, data->win);
         exit(0);
     }
     // Check for valid move
@@ -421,7 +422,7 @@ int handle_key(int keycode, t_data *data)
 			printf("   \\ \\_/ / |  | | |  | |  \\ \\  /\\  / /  | | |  \\| | |\n");
 			printf("    \\   /| |  | | |  | |   \\ \\/  \\/ /   | | | . ` | |\n");
 			printf("     | | | |__| | |__| |    \\  /\\  /   _| |_| |\\  |_|\n");
-			printf("     |_|  \\____/ \\____/      \\/  \\/   |_____|_| \\_(_)\n");
+			printf("     |_|  \\____/ \\____/      \\/  \\/   |_____|_| \\_(_)\n\n");
         	mlx_destroy_window(data->mlx, data->win);
            	exit(0);
 		}
@@ -454,19 +455,17 @@ int handle_key(int keycode, t_data *data)
 	(data->move)++;
 	if (data->move > 0)
 		printf("Current Move: %d\n", data->move);
-	printf("%d", keycode);
     return (0);
 }
-int close_window(int button, void *param)
+int close_window(int keycode, t_data *data)
 {
-    // Window close event
-    if (button == 0)
-    {
-        mlx_destroy_window(param, param);  // Destroy the window
-        exit(0);  // Exit the program
-    }
-    return 0;
+    (void)keycode;
+    (void)data;
+    printf("Exiting...\n");
+    exit(0);  // Exit the program
+    return (0);
 }
+
 int main(void)
 {
 	t_data data;
