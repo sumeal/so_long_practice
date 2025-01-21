@@ -5,45 +5,50 @@
 #                                                     +:+ +:+         +:+      #
 #    By: muzz <muzz@student.42.fr>                  +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
-#    Created: 2025/01/15 08:55:18 by muzz              #+#    #+#              #
-#    Updated: 2025/01/15 08:58:31 by muzz             ###   ########.fr        #
+#    Created: 2025/01/17 15:19:30 by muzz              #+#    #+#              #
+#    Updated: 2025/01/20 08:54:48 by muzz             ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
 NAME = so_long
 
 CC = cc
-
 CFLAGS = -Wall -Wextra -Werror
 
-SRC = so_long.c
+# Directories
+GNL_DIR = get_next_line
+MLX_DIR = minilibx-linux
 
+# Source Files
+SRC = so_long.c \
+	  $(GNL_DIR)/get_next_line.c \
+	  $(GNL_DIR)/get_next_line_utils.c
+
+# Object Files
 OBJ = $(SRC:.c=.o)
 
-LIBFT_DIR = ./minilibx-linux
-LIBFT = $(LIBFT_DIR)/libmlx.a
+# Libraries
+MLX = $(MLX_DIR)/libmlx.a
 
-LIBFT_INC = -I $(LIBFT_DIR)
-LIBFT_LNK = -L $(LIBFT_DIR) -lmlx -lXext -lX11 -lm
-
-RM = rm -f
-
+# Rules
 all: $(NAME)
 
-$(NAME): $(OBJ) $(LIBFT)
-	$(CC) $(CFLAGS) -o $(NAME) $(OBJ) $(LIBFT_INC) $(LIBFT_LNK)
+$(NAME): $(OBJ) $(MLX)
+	$(CC) $(CFLAGS) -o $(NAME) $(OBJ) $(MLX) -lX11 -lXext -lm
 
-%.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+$(MLX):
+	make -C $(MLX_DIR)
 
-$(LIBFT):
-	$(MAKE) -C $(LIBFT_DIR)
+%.o : %.c
+	$(CC) $(CFLAGS) -I $(MLX_DIR) -I $(GNL_DIR) -c $< -o $@
 
 clean:
-	$(RM) $(OBJ)
+	rm -f $(OBJ)
+	make clean -C $(MLX_DIR)
 
 fclean: clean
-	$(RM) $(NAME)
+	rm -f $(NAME)
+	make fclean -C $(MLX_DIR)
 
 re: fclean all
 

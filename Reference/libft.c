@@ -1,18 +1,31 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   so_long.h                                          :+:      :+:    :+:   */
+/*   libft.c                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: muzz <muzz@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/01/17 15:20:31 by muzz              #+#    #+#             */
-/*   Updated: 2025/01/18 22:23:03 by muzz             ###   ########.fr       */
+/*   Created: 2025/01/17 10:34:16 by muzz              #+#    #+#             */
+/*   Updated: 2025/01/17 11:37:27 by muzz             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef SO_LONG_H
-# define SO_LONG_H
+#include "so_long.h"
 
+char	*ft_strdup(const char *s)
+{
+	char	*str;
+	int		i;
 
-
-#endif
+	str = (char *)malloc(ft_strlen(s) + 1);
+	if (!str)
+		return (NULL);
+	i = 0;
+	while (s[i] && s[i] != '\n')
+	{
+		str[i] = s[i];
+		i++;
+	}
+	str[i] = '\0';
+	return (str);
+}
