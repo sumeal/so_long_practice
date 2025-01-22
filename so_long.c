@@ -6,43 +6,76 @@
 /*   By: muzz <muzz@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/01/17 15:20:15 by muzz              #+#    #+#             */
-/*   Updated: 2025/01/21 11:43:38 by muzz             ###   ########.fr       */
+/*   Updated: 2025/01/22 09:10:29 by muzz             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "so_long.h"
-#include "minilibx-linux/mlx.h"
-#include "get_next_line/get_next_line.h"
-#include <fcntl.h>
-#include <stdio.h>
 
-typedef struct s_data
+void free_visited(t_data *data)
 {
-	void	*mlx;
-	void	*win;
-	int		width;
-	int		height;
-	char	**map;
-	char	**visited;
-	void	*player;
-	void	*collectible;
-	void	*exit;
-	void	*wall;
-	void	*grass;
-	void	*cross;
-	int		qty_collectible;
-	int		qty_player;
-	int		qty_exit;
-	int		player_x;
-	int		player_y;
-	int		move;
-	
-}			t_data;
+    int i;
 
-void	print_error(char *str)
+    i = 0;
+    while (i < data->height)
+    {
+        free(data->visited[i]);
+        i++;
+    }
+    free(data->visited);
+}
+void free_all(t_data *data)
+{
+    int i;
+
+    // Free map data
+    i = 0;
+    while (data->map[i])
+    {
+        free(data->map[i]);
+        i++;
+    }
+    free(data->map);
+	free_visited(data);
+    mlx_destroy_image(data->mlx, data->wall);
+    mlx_destroy_image(data->mlx, data->player);
+    mlx_destroy_image(data->mlx, data->collectible);
+    mlx_destroy_image(data->mlx, data->exit);
+    mlx_destroy_image(data->mlx, data->grass);
+    mlx_destroy_image(data->mlx, data->cross);
+    mlx_destroy_window(data->mlx, data->win);
+    mlx_destroy_display(data->mlx);
+	free(data->mlx);
+}
+
+
+void	print_error(char *str, t_data *data)
 {
 	printf("%s\n", str);
+	free_all(data);
 	exit(1);
+}
+
+int	ft_strnstr(const char *haystack, const char *needle)
+{
+	size_t i;
+	size_t j;
+
+	i = 0;
+	while (haystack[i])
+	{
+		j = 0;
+		while (haystack[i + j] == needle[j])
+		{
+			if (needle[j] == '\0')
+				return (1);
+			j++;
+		}
+		if (needle[j] == '\0')
+			return (0);
+		i++;
+	}
+	return (0);
 }
 
 char *ft_strdup_sl(char *str)
@@ -68,9 +101,9 @@ void	get_resolution(t_data *data)
 	int fd;
 	char *line;
 
-	fd = open("map.ber", O_RDONLY);
+	fd = open(data->map_file, O_RDONLY);
 	if (fd == -1)
-		print_error("Error opening the map\n");
+		print_error("Error opening the map\n", data);
 	while(1)
 	{
 		line = get_next_line(fd);
@@ -80,11 +113,10 @@ void	get_resolution(t_data *data)
 		free(line);
 		data->height++;
 	}
-	free(line);
 	close(fd);
-	data->map = malloc(sizeof(char *) * (data->height) + 1);
+	data->map = malloc(sizeof(char *) * ((data->height) + 1));
 	if (!data->map)
-		print_error("Malloc failed\n");
+		print_error("Malloc failed\n", data);
 }
 void get_data(t_data *data)
 {
@@ -93,23 +125,25 @@ void get_data(t_data *data)
 	int	i;
 	
 	i = 0;
+	data->pixel_scale = 50; // 50 pixels per square
 	data->height = 0;
 	data->width = 0;
-	data->move = -1;
+	data->move = -1; // Start at -1 to avoid counting the first move
 	get_resolution(data);
-	fd = open("map.ber", O_RDONLY);
+	fd = open(data->map_file, O_RDONLY);
 	if (fd == -1)
-		print_error("Error opening the map\n");
+		print_error("Error: Opening the map.\n", data);
 	while (1)
 	{
 		line = get_next_line(fd);
 		if (!line)
 			break;
 		data->map[i++] = ft_strdup_sl(line);
+		if (!data->map[i - 1])
+			print_error("Malloc failed\n", data);
 		free(line);
 	}
 	data->map[i] = NULL;
-	free(line);
 	close(fd);
 }
 
@@ -218,15 +252,14 @@ void init_visited(t_data *data)
 
     data->visited = malloc(sizeof(char *) * data->height);
     if (!data->visited)
-        print_error("Malloc failed\n");
+        print_error("Malloc failed\n", data);
 
     i = 0;
     while (i < data->height)
     {
         data->visited[i] = malloc(sizeof(char) * data->width);
         if (!data->visited[i])
-            print_error("Malloc failed\n");
-        
+            print_error("Malloc failed\n", data);
         j = 0;
         while (j < data->width)
         {
@@ -240,10 +273,10 @@ void init_visited(t_data *data)
 int is_valid_move(int x, int y, t_data *data)
 {
     if (x < 0 || y < 0 || x >= data->width || y >= data->height)
-        return 0;
+        return (0);
     if (data->map[y][x] == '1' || data->visited[y][x] == 1)
-        return 0;
-    return 1;
+        return (0);
+    return (1);
 }
 
 void flood_fill(int x, int y, t_data *data)
@@ -255,19 +288,6 @@ void flood_fill(int x, int y, t_data *data)
     flood_fill(x - 1, y, data);
     flood_fill(x, y + 1, data);
     flood_fill(x, y - 1, data);
-}
-
-void free_visited(t_data *data)
-{
-    int i;
-
-    i = 0;
-    while (i < data->height)
-    {
-        free(data->visited[i]);
-        i++;
-    }
-    free(data->visited);
 }
 
 int is_path_valid(t_data *data)
@@ -284,10 +304,7 @@ int is_path_valid(t_data *data)
         while (j < data->width)
         {
             if (data->map[i][j] == 'C' && !data->visited[i][j])
-            {
-                free_visited(data);
-                return (0);
-            }
+				return (0);
             j++;
         }
         i++;
@@ -299,30 +316,26 @@ int is_path_valid(t_data *data)
         while (j < data->width)
         {
             if (data->map[i][j] == 'E' && !data->visited[i][j])
-            {
-                free_visited(data);
-                return (0);
-            }
+				return (0);
             j++;
         }
         i++;
     }
-    free_visited(data);
     return (1);
 }
 
 void check_map(t_data *data)
 {
     if (data->height < 3 || data->width < 3)
-        print_error("Map too small\n");
+        print_error("Error: Map too small\n", data);
     if (!is_valid(data))
-        print_error("Map not valid\n");
+        print_error("Error: Map not valid\n", data);
     if (!is_rectangular(data))
-        print_error("Map not rectangular\n");
+        print_error("Error: Map not rectangular\n", data);
     if (!is_closed(data))
-        print_error("Map not closed\n");
+        print_error("Error: Map not closed\n", data);
     if (!is_path_valid(data))
-        print_error("Path not valid\n");
+        print_error("Error: Path not valid\n", data);
 }
 
 
@@ -340,17 +353,21 @@ void	load_texture(t_data *data)
 	data->grass = mlx_xpm_file_to_image(data->mlx, "graphic/grass.xpm", &width, &height);
 	data->cross = mlx_xpm_file_to_image(data->mlx, "graphic/cross.xpm", &width, &height);
 	if (!data->wall || !data->player || !data->collectible || !data->exit || !data->grass || !data->cross)
-	{
-		printf("Error loading texture\n");
-		exit(1);
-	}
+		print_error("Error: Loading textures\n", data);
+}
+
+void	check_pixel_scale(t_data *data)
+{
+	if ((data->pixel_scale) * (data->width) > 1920 || (data->pixel_scale) * (data->height) > 1080)
+		print_error("Error: Map too big\n", data);
 }
 
 void	render_map(t_data *data)
 {
 	int x;
 	int y;
-
+	
+	check_pixel_scale(data);
 	y = 0;
 	while (data->map[y])
 	{
@@ -358,15 +375,15 @@ void	render_map(t_data *data)
 		while (data->map[y][x])
 		{
 			if (data->map[y][x] == '1')
-				mlx_put_image_to_window(data->mlx, data->win, data->wall, x * 50, y * 50);
+				mlx_put_image_to_window(data->mlx, data->win, data->wall, x * (data->pixel_scale), y * (data->pixel_scale));
 			else if (data->map[y][x] == 'P')
-				mlx_put_image_to_window(data->mlx, data->win, data->player, x * 50, y * 50);
+				mlx_put_image_to_window(data->mlx, data->win, data->player, x * (data->pixel_scale), y * (data->pixel_scale));
 			else if (data->map[y][x] == 'C')
-				mlx_put_image_to_window(data->mlx, data->win, data->collectible, x * 50, y * 50);
+				mlx_put_image_to_window(data->mlx, data->win, data->collectible, x * (data->pixel_scale), y * (data->pixel_scale));
 			else if (data->map[y][x] == 'E')
-				mlx_put_image_to_window(data->mlx, data->win, data->exit, x * 50, y * 50);
+				mlx_put_image_to_window(data->mlx, data->win, data->exit, x * (data->pixel_scale), y * (data->pixel_scale));
 			else if (data->map[y][x] == '0')
-				mlx_put_image_to_window(data->mlx, data->win, data->grass, x * 50, y * 50);
+				mlx_put_image_to_window(data->mlx, data->win, data->grass, x * (data->pixel_scale), y * (data->pixel_scale));
 			x++;
 		}
 		y++;
@@ -376,20 +393,20 @@ void	render_map(t_data *data)
 void update_map(t_data *data, int old_x, int old_y, int new_x, int new_y)
 {
 
-    if (data->map[new_y][new_x] == 'E')
+	if (data->map[new_y][new_x] == 'E')
 	{
-		mlx_put_image_to_window(data->mlx, data->win, data->cross, new_x * 50, new_y * 50);
-		mlx_put_image_to_window(data->mlx, data->win, data->grass, old_x * 50, old_y * 50);
+		mlx_put_image_to_window(data->mlx, data->win, data->cross, new_x * (data->pixel_scale), new_y * (data->pixel_scale));
+		mlx_put_image_to_window(data->mlx, data->win, data->grass, old_x * (data->pixel_scale), old_y * (data->pixel_scale));
 	}
 	else if (data->map[old_y][old_x] == 'E')
 	{
-		mlx_put_image_to_window(data->mlx, data->win, data->exit, old_x * 50, old_y * 50);
+		mlx_put_image_to_window(data->mlx, data->win, data->exit, old_x * (data->pixel_scale), old_y * (data->pixel_scale));
 		mlx_put_image_to_window(data->mlx, data->win, data->player, new_x * 50, new_y * 50);	
 	}
 	else
 	{
-		mlx_put_image_to_window(data->mlx, data->win, data->grass, old_x * 50, old_y * 50);
-    	mlx_put_image_to_window(data->mlx, data->win, data->player, new_x * 50, new_y * 50);
+		mlx_put_image_to_window(data->mlx, data->win, data->grass, old_x * (data->pixel_scale), old_y * (data->pixel_scale));
+    	mlx_put_image_to_window(data->mlx, data->win, data->player, new_x * (data->pixel_scale), new_y * (data->pixel_scale));
 	}
 }
 
@@ -410,12 +427,17 @@ int handle_key(int keycode, t_data *data)
     {
         printf("Exiting...\n");
 		mlx_destroy_window(data->mlx, data->win);
-        exit(0);
+		mlx_destroy_display(data->mlx);
+    	free_all(data);
+		exit(0);
     }
     // Check for valid move
     if (data->map[new_y][new_x] != '1') // Avoid walls
     {
-        if (data->map[new_y][new_x] == 'E' && data->qty_collectible == 0)
+		(data->move)++;
+		if (data->move > 0)
+			printf("Current Move: %d\n", data->move);        
+		if (data->map[new_y][new_x] == 'E' && data->qty_collectible == 0)
 		{
 			printf("  __     ______  _    _  __          _______ _   _ _\n");
 			printf("  \\ \\   / / __ \\| |  | | \\ \\        / /_   _| \\ | | |\n");
@@ -423,8 +445,8 @@ int handle_key(int keycode, t_data *data)
 			printf("    \\   /| |  | | |  | |   \\ \\/  \\/ /   | | | . ` | |\n");
 			printf("     | | | |__| | |__| |    \\  /\\  /   _| |_| |\\  |_|\n");
 			printf("     |_|  \\____/ \\____/      \\/  \\/   |_____|_| \\_(_)\n\n");
-        	mlx_destroy_window(data->mlx, data->win);
-           	exit(0);
+           	free_all(data);
+			exit(0);
 		}
 		if (data->map[new_y][new_x] == 'C')
         	data->qty_collectible--;
@@ -434,6 +456,7 @@ int handle_key(int keycode, t_data *data)
 			data->map[data->player_y][data->player_x] = '0'; // Clear old position			
 			data->player_x = new_x;
        		data->player_y = new_y;
+			printf("You need to k!ll all the rats first\n");
 		}
 		else if (data->map[data->player_y][data->player_x] == 'E')
 		{
@@ -452,32 +475,42 @@ int handle_key(int keycode, t_data *data)
        	data->player_y = new_y;
 		}
 	}
-	(data->move)++;
-	if (data->move > 0)
-		printf("Current Move: %d\n", data->move);
-    return (0);
+	return (0);
 }
 int close_window(int keycode, t_data *data)
 {
     (void)keycode;
     (void)data;
     printf("Exiting...\n");
+	free_all(data);
     exit(0);  // Exit the program
     return (0);
 }
 
-int main(void)
+int main(int argc, char **argv)
 {
 	t_data data;
 
+	data = (t_data){0};
+	if (argc != 2)
+    {
+        printf("Usage: %s <map_file.ber>\n", argv[0]);
+        return (1);
+    }
+    data.map_file = argv[1];
+    if (!ft_strnstr(data.map_file, ".ber"))
+    {
+        printf("Error: File must have a .ber extension.\n");
+        return (1);
+    }
 	get_data(&data);
 	check_map(&data);
 	data.mlx = mlx_init();
 	data.win = mlx_new_window(data.mlx, (data.width * 50), (data.height *50), "So Long");
 	load_texture(&data);
 	render_map(&data);
-    mlx_hook(data.win, 17, 0, close_window, data.mlx);		
-	printf("Player position is %d, %d\n", data.player_x, data.player_y);
+	mlx_hook(data.win, 17, 0, close_window, data.mlx);		
 	mlx_key_hook(data.win, handle_key, &data);
 	mlx_loop(data.mlx);
 }
+
