@@ -6,7 +6,7 @@
 #    By: muzz <muzz@student.42.fr>                  +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/01/17 15:19:30 by muzz              #+#    #+#              #
-#    Updated: 2025/01/22 09:03:41 by muzz             ###   ########.fr        #
+#    Updated: 2025/01/22 15:47:37 by muzz             ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -15,22 +15,23 @@ NAME = so_long
 CC = cc
 CFLAGS = -Wall -Wextra -Werror
 
-# Directories
 GNL_DIR = get_next_line
 MLX_DIR = minilibx-linux
 
-# Source Files
 SRC = so_long.c \
-	  $(GNL_DIR)/get_next_line.c \
-	  $(GNL_DIR)/get_next_line_utils.c
+	  check_map.c \
+	  check_map2.c \
+	  error_free.c \
+	  get_map_data.c \
+	  libft_sl.c \
+	  mechanism.c \
+	  get_next_line.c \
+	  get_next_line_utils.c
 
-# Object Files
 OBJ = $(SRC:.c=.o)
 
-# Libraries
 MLX = $(MLX_DIR)/libmlx.a
 
-# Rules
 all: $(NAME)
 
 $(NAME): $(OBJ) $(MLX)
